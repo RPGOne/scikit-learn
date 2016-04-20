@@ -33,8 +33,8 @@ Scikit-learn implements different classes to estimate Gaussian
 mixture models, that correspond to different estimation strategies,
 detailed below.
 
-GMM classifier
-===============
+Gaussian Mixture Model
+======================
 
 The :class:`GMM` object implements the 
 :ref:`expectation-maximization <expectation_maximization>` (EM)
@@ -43,7 +43,7 @@ confidence ellipsoids for multivariate models, and compute the
 Bayesian Information Criterion to assess the number of clusters in the
 data. A :meth:`GMM.fit` method is provided that learns a Gaussian
 Mixture Model from train data. Given test data, it can assign to each
-sample the class of the Gaussian it mostly probably belong to using
+sample the Gaussian it mostly probably belong to using
 the :meth:`GMM.predict` method.
 
 ..  
@@ -55,15 +55,15 @@ The :class:`GMM` comes with different options to constrain the covariance
 of the difference classes estimated: spherical, diagonal, tied or full
 covariance.
 
-.. figure:: ../auto_examples/mixture/images/plot_gmm_classifier_001.png
-   :target: ../auto_examples/mixture/plot_gmm_classifier.html
+.. figure:: ../auto_examples/mixture/images/plot_gmm_covariances_001.png
+   :target: ../auto_examples/mixture/plot_gmm_covariances.html
    :align: center
    :scale: 75%
 
 .. topic:: Examples:
 
-    * See :ref:`example_mixture_plot_gmm_classifier.py` for an example of
-      using a GMM as a classifier on the iris dataset.
+    * See :ref:`example_mixture_plot_gmm_covariances.py` for an example of
+      using a GMM for clustering on the iris dataset.
 
     * See :ref:`example_mixture_plot_gmm_pdf.py` for an example on plotting the 
       density estimation.
@@ -122,7 +122,7 @@ data is that it is one usually doesn't know which points came from
 which latent component (if one has access to this information it gets
 very easy to fit a separate Gaussian distribution to each set of
 points). `Expectation-maximization
-<http://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm>`_
+<https://en.wikipedia.org/wiki/Expectation%E2%80%93maximization_algorithm>`_
 is a well-founded statistical
 algorithm to get around this problem by an iterative process. First
 one assumes random components (randomly centered on data points,
@@ -135,8 +135,8 @@ to a local optimum.
 
 .. _vbgmm:
 
-VBGMM classifier: variational Gaussian mixtures
-================================================
+VBGMM: variational Gaussian mixtures
+====================================
 
 The :class:`VBGMM` object implements a variant of the Gaussian mixture
 model with :ref:`variational inference <variational_inference>` algorithms. The API is identical to
@@ -145,7 +145,7 @@ and :class:`DPGMM`, as it has some of the properties of the Dirichlet
 process.
 
 Pros and cons of class :class:`VBGMM`: variational inference
--------------------------------------------------------------
+------------------------------------------------------------
 
 Pros
 .....
@@ -200,8 +200,8 @@ points.
 
 .. _dpgmm:
 
-DPGMM classifier: Infinite Gaussian mixtures
-============================================
+DPGMM: Infinite Gaussian mixtures
+=================================
 
 The :class:`DPGMM` object implements a variant of the Gaussian mixture
 model with a variable (but bounded) number of components using the
@@ -287,7 +287,7 @@ An important question is how can the Dirichlet process use an
 infinite, unbounded number of clusters and still be consistent. While
 a full explanation doesn't fit this manual, one can think of its
 `chinese restaurant process
-<http://en.wikipedia.org/wiki/Chinese_restaurant_process>`_ 
+<https://en.wikipedia.org/wiki/Chinese_restaurant_process>`_
 analogy to help understanding it. The
 chinese restaurant process is a generative story for the Dirichlet
 process. Imagine a chinese restaurant with an infinite number of

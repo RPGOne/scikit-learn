@@ -120,6 +120,33 @@ def test_nmf_transform():
         assert_array_almost_equal(ft, t, decimal=2)
 
 
+def test_nmf_transform_custom_init():
+    # Smoke test that checks if NMF.transform works with custom initialization
+    A = np.abs(random_state.randn(6, 5))
+    n_components = 4
+    avg = np.sqrt(A.mean() / n_components)
+    H_init = np.abs(avg * random_state.randn(n_components, 5))
+    W_init = np.abs(avg * random_state.randn(6, n_components))
+
+    m = NMF(solver='cd', n_components=n_components, init='custom', random_state=0)
+    ft = m.fit_transform(A, W=W_init, H=H_init)
+    t = m.transform(A)
+
+
+
+@ignore_warnings
+def test_nmf_inverse_transform():
+    # Test that NMF.inverse_transform returns close values
+    random_state = np.random.RandomState(0)
+    A = np.abs(random_state.randn(6, 4))
+    for solver in ('pg', 'cd'):
+        m = NMF(solver=solver, n_components=4, init='random', random_state=0)
+        ft = m.fit_transform(A)
+        t = m.transform(A)
+        A_new = m.inverse_transform(t)
+        assert_array_almost_equal(A, A_new, decimal=2)
+
+
 @ignore_warnings
 def test_n_components_greater_n_features():
     # Smoke test for the case of more components than features.

@@ -1,4 +1,3 @@
-
 """
 Testing for Isolation Forest algorithm (sklearn.ensemble.iforest).
 """
@@ -12,7 +11,6 @@ import numpy as np
 from sklearn.utils.testing import assert_array_equal
 from sklearn.utils.testing import assert_array_almost_equal
 from sklearn.utils.testing import assert_raises
-from sklearn.utils.testing import assert_warns
 from sklearn.utils.testing import assert_warns_message
 from sklearn.utils.testing import assert_equal
 from sklearn.utils.testing import assert_no_warnings
@@ -21,7 +19,7 @@ from sklearn.utils.testing import ignore_warnings
 
 from sklearn.grid_search import ParameterGrid
 from sklearn.ensemble import IsolationForest
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 from sklearn.datasets import load_boston, load_iris
 from sklearn.utils import check_random_state
 from sklearn.metrics import roc_auc_score
@@ -76,12 +74,13 @@ def test_iforest_sparse():
         for params in grid:
             # Trained on sparse format
             sparse_classifier = IsolationForest(
-                random_state=1, **params).fit(X_train_sparse)
+                n_estimators=10, random_state=1, **params).fit(X_train_sparse)
             sparse_results = sparse_classifier.predict(X_test_sparse)
 
             # Trained on dense format
-            dense_results = IsolationForest(
-                random_state=1, **params).fit(X_train).predict(X_test)
+            dense_classifier = IsolationForest(
+                n_estimators=10, random_state=1, **params).fit(X_train)
+            dense_results = dense_classifier.predict(X_test)
 
             assert_array_equal(sparse_results, dense_results)
             assert_array_equal(sparse_results, dense_results)

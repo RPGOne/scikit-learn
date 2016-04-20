@@ -1,7 +1,7 @@
 """ Non-negative matrix factorization
 """
 # Author: Vlad Niculae
-#         Lars Buitinck <L.J.Buitinck@uva.nl>
+#         Lars Buitinck
 #         Mathieu Blondel <mathieu@mblondel.org>
 #         Tom Dupre la Tour
 # Author: Chih-Jen Lin, National Taiwan University (original projected gradient
@@ -760,7 +760,7 @@ def non_negative_factorization(X, W=None, H=None, n_components=None,
                          "positive; got (tol=%r)" % tol)
 
     # check W and H, or initialize them
-    if init == 'custom':
+    if init == 'custom' and update_H:
         _check_init(H, (n_components, n_features), "NMF (input H)")
         _check_init(W, (n_samples, n_components), "NMF (input W)")
     elif not update_H:
@@ -1107,6 +1107,23 @@ class NMF(BaseEstimator, TransformerMixin):
 
         self.n_iter_ = n_iter_
         return W
+
+    def inverse_transform(self, W):
+        """
+        Parameters
+        ----------
+        W: {array-like, sparse matrix}, shape (n_samples, n_components)
+            Transformed Data matrix
+
+        Returns
+        -------
+        X: {array-like, sparse matrix}, shape (n_samples, n_features)
+            Data matrix of original shape
+
+        .. versionadded:: 0.18
+        """
+        check_is_fitted(self, 'n_components_')
+        return np.dot(W, self.components_)
 
 
 @deprecated("It will be removed in release 0.19. Use NMF instead."

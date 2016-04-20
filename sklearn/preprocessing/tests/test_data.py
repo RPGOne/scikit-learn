@@ -10,6 +10,7 @@ import numpy as np
 import numpy.linalg as la
 from scipy import sparse
 from distutils.version import LooseVersion
+from sklearn.externals.six import u
 
 from sklearn.utils import gen_batches
 
@@ -117,6 +118,30 @@ def test_polynomial_features():
     interact = PolynomialFeatures(2, interaction_only=True, include_bias=True)
     X_poly = interact.fit_transform(X)
     assert_array_almost_equal(X_poly, P2[:, [0, 1, 2, 4]])
+
+    assert_equal(interact.powers_.shape, (interact.n_output_features_,
+                 interact.n_input_features_))
+
+
+def test_polynomial_feature_names():
+    X = np.arange(30).reshape(10, 3)
+    poly = PolynomialFeatures(degree=2, include_bias=True).fit(X)
+    feature_names = poly.get_feature_names()
+    assert_array_equal(['1', 'x0', 'x1', 'x2', 'x0^2', 'x0 x1',
+                        'x0 x2', 'x1^2', 'x1 x2', 'x2^2'],
+                       feature_names)
+
+    poly = PolynomialFeatures(degree=3, include_bias=False).fit(X)
+    feature_names = poly.get_feature_names(["a", "b", "c"])
+    assert_array_equal(['a', 'b', 'c', 'a^2', 'a b', 'a c', 'b^2',
+                        'b c', 'c^2', 'a^3', 'a^2 b', 'a^2 c',
+                        'a b^2', 'a b c', 'a c^2', 'b^3', 'b^2 c',
+                        'b c^2', 'c^3'], feature_names)
+    # test some unicode
+    poly = PolynomialFeatures(degree=1, include_bias=True).fit(X)
+    feature_names = poly.get_feature_names([u"\u0001F40D", u"\u262E", u"\u05D0"])
+    assert_array_equal([u"1", u"\u0001F40D", u"\u262E", u"\u05D0"],
+                       feature_names)
 
 
 def test_standard_scaler_1d():
@@ -1243,6 +1268,26 @@ def test_normalize():
                        normalize(X.T, axis=0, copy=False).T)
     assert_raises(ValueError, normalize, [[0]], axis=2)
     assert_raises(ValueError, normalize, [[0]], norm='l3')
+
+    rs = np.random.RandomState(0)
+    X_dense = rs.randn(10, 5)
+    X_sparse = sparse.csr_matrix(X_dense)
+    ones = np.ones((10))
+    for X in (X_dense, X_sparse):
+        for dtype in (np.float32, np.float64):
+            for norm in ('l1', 'l2'):
+                X = X.astype(dtype)
+                X_norm = normalize(X, norm=norm)
+                assert_equal(X_norm.dtype, dtype)
+
+                X_norm = toarray(X_norm)
+                if norm == 'l1':
+                    row_sums = np.abs(X_norm).sum(axis=1)
+                else:
+                    X_norm_squared = X_norm**2
+                    row_sums = X_norm_squared.sum(axis=1)
+
+                assert_array_almost_equal(row_sums, ones)
 
 
 def test_binarizer():

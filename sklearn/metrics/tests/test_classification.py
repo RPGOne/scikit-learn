@@ -324,6 +324,13 @@ def test_cohen_kappa():
     y2 = np.array([0] * 52 + [1] * 32 + [2] * 16)
     assert_almost_equal(cohen_kappa_score(y1, y2), .8013, decimal=4)
 
+    # Weighting example: none, linear, quadratic.
+    y1 = np.array([0] * 46 + [1] * 44 + [2] * 10)
+    y2 = np.array([0] * 50 + [1] * 40 + [2] * 10)
+    assert_almost_equal(cohen_kappa_score(y1, y2), .9315, decimal=4)
+    assert_almost_equal(cohen_kappa_score(y1, y2, weights="linear"), .9412, decimal=4)
+    assert_almost_equal(cohen_kappa_score(y1, y2, weights="quadratic"), .9541, decimal=4)
+
 
 @ignore_warnings
 def test_matthews_corrcoef_nan():
@@ -511,6 +518,24 @@ def test_confusion_matrix_multiclass():
          string_type=True)
 
 
+def test_confusion_matrix_sample_weight():
+    """Test confusion matrix - case with sample_weight"""
+    y_true, y_pred, _ = make_prediction(binary=False)
+
+    weights = [.1] * 25 + [.2] * 25 + [.3] * 25
+
+    cm = confusion_matrix(y_true, y_pred, sample_weight=weights)
+
+    true_cm = (.1 * confusion_matrix(y_true[:25], y_pred[:25]) +
+               .2 * confusion_matrix(y_true[25:50], y_pred[25:50]) +
+               .3 * confusion_matrix(y_true[50:], y_pred[50:]))
+
+    assert_array_almost_equal(cm, true_cm)
+    assert_raises(
+        ValueError, confusion_matrix, y_true, y_pred,
+        sample_weight=weights[:-1])
+
+
 def test_confusion_matrix_multiclass_subset_labels():
     # Test confusion matrix - multi-class case with subset of labels
     y_true, y_pred, _ = make_prediction(binary=False)
@@ -649,6 +674,27 @@ avg / total       0.51      0.53      0.47        75
     else:
         report = classification_report(y_true, y_pred)
         assert_equal(report, expected_report)
+
+
+def test_classification_report_multiclass_with_long_string_label():
+    y_true, y_pred, _ = make_prediction(binary=False)
+
+    labels = np.array(["blue", "green"*5, "red"])
+    y_true = labels[y_true]
+    y_pred = labels[y_pred]
+
+    expected_report = """\
+                           precision    recall  f1-score   support
+
+                     blue       0.83      0.79      0.81        24
+greengreengreengreengreen       0.33      0.10      0.15        31
+                      red       0.42      0.90      0.57        20
+
+              avg / total       0.51      0.53      0.47        75
+"""
+
+    report = classification_report(y_true, y_pred)
+    assert_equal(report, expected_report)
 
 
 def test_multilabel_classification_report():

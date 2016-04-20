@@ -12,11 +12,12 @@ the lower the better
 #          Olivier Grisel <olivier.grisel@ensta.org>
 #          Arnaud Joly <a.joly@ulg.ac.be>
 #          Jochen Wersdorfer <jochen@wersdoerfer.de>
-#          Lars Buitinck <L.J.Buitinck@uva.nl>
+#          Lars Buitinck
 #          Joel Nothman <joel.nothman@gmail.com>
 #          Noel Dawe <noel@dawe.me>
 #          Jatin Shah <jatindshah@gmail.com>
 #          Saurabh Jha <saurabh.jhaa@gmail.com>
+#          Bernardo Stein <bernardovstein@gmail.com>
 # License: BSD 3 clause
 
 from __future__ import division
@@ -26,7 +27,6 @@ import numpy as np
 
 from scipy.sparse import coo_matrix
 from scipy.sparse import csr_matrix
-from scipy.spatial.distance import hamming as sp_hamming
 
 from ..preprocessing import LabelBinarizer, label_binarize
 from ..preprocessing import LabelEncoder
@@ -178,7 +178,7 @@ def accuracy_score(y_true, y_pred, normalize=True, sample_weight=None):
     return _weighted_sum(score, sample_weight, normalize)
 
 
-def confusion_matrix(y_true, y_pred, labels=None):
+def confusion_matrix(y_true, y_pred, labels=None, sample_weight=None):
     """Compute confusion matrix to evaluate the accuracy of a classification
 
     By definition a confusion matrix :math:`C` is such that :math:`C_{i, j}`
@@ -201,6 +201,8 @@ def confusion_matrix(y_true, y_pred, labels=None):
         If none is given, those that appear at least once
         in ``y_true`` or ``y_pred`` are used in sorted order.
 
+    sample_weight : array-like of shape = [n_samples], optional
+        Sample weights.
 
     Returns
     -------
@@ -210,7 +212,7 @@ def confusion_matrix(y_true, y_pred, labels=None):
     References
     ----------
     .. [1] `Wikipedia entry for the Confusion matrix
-           <http://en.wikipedia.org/wiki/Confusion_matrix>`_
+           <https://en.wikipedia.org/wiki/Confusion_matrix>`_
 
     Examples
     --------
@@ -239,6 +241,13 @@ def confusion_matrix(y_true, y_pred, labels=None):
     else:
         labels = np.asarray(labels)
 
+    if sample_weight is None:
+        sample_weight = np.ones(y_true.shape[0], dtype=np.int)
+    else:
+        sample_weight = np.asarray(sample_weight)
+
+    check_consistent_length(sample_weight, y_true, y_pred)
+
     n_labels = labels.size
     label_to_ind = dict((y, x) for x, y in enumerate(labels))
     # convert yt, yp into index
@@ -249,15 +258,17 @@ def confusion_matrix(y_true, y_pred, labels=None):
     ind = np.logical_and(y_pred < n_labels, y_true < n_labels)
     y_pred = y_pred[ind]
     y_true = y_true[ind]
+    # also eliminate weights of eliminated items
+    sample_weight = sample_weight[ind]
 
-    CM = coo_matrix((np.ones(y_true.shape[0], dtype=np.int), (y_true, y_pred)),
+    CM = coo_matrix((sample_weight, (y_true, y_pred)),
                     shape=(n_labels, n_labels)
                     ).toarray()
 
     return CM
 
 
-def cohen_kappa_score(y1, y2, labels=None):
+def cohen_kappa_score(y1, y2, labels=None, weights=None):
     """Cohen's kappa: a statistic that measures inter-annotator agreement.
 
     This function computes Cohen's kappa [1], a score that expresses the level
@@ -287,6 +298,10 @@ def cohen_kappa_score(y1, y2, labels=None):
         subset of labels. If None, all labels that appear at least once in
         ``y1`` or ``y2`` are used.
 
+    weights : str, optional
+        List of weighting type to calculate the score. None means no weighted;
+        "linear" means linear weighted; "quadratic" means quadratic weighted.
+
     Returns
     -------
     kappa : float
@@ -302,10 +317,26 @@ def cohen_kappa_score(y1, y2, labels=None):
            computational linguistics". Computational Linguistic 34(4):555-596.
     """
     confusion = confusion_matrix(y1, y2, labels=labels)
-    P = confusion / float(confusion.sum())
-    p_observed = np.trace(P)
-    p_expected = np.dot(P.sum(axis=0), P.sum(axis=1))
-    return (p_observed - p_expected) / (1 - p_expected)
+    n_classes = confusion.shape[0]
+    sum0 = np.sum(confusion, axis=0)
+    sum1 = np.sum(confusion, axis=1)
+    expected = np.outer(sum0, sum1) / np.sum(sum0)
+
+    if weights is None:
+        w_mat = np.ones([n_classes, n_classes], dtype=np.int)
+        w_mat.flat[:: n_classes + 1] = 0
+    elif weights == "linear" or weights == "quadratic":
+        w_mat = np.zeros([n_classes, n_classes], dtype=np.int)
+        w_mat += np.arange(n_classes)
+        if weights == "linear":
+            w_mat = np.abs(w_mat - w_mat.T)
+        else:
+            w_mat = (w_mat - w_mat.T) ** 2
+    else:
+        raise ValueError("Unknown kappa weighting type.")
+
+    k = np.sum(w_mat * confusion) / np.sum(w_mat * expected)
+    return 1 - k
 
 
 def jaccard_similarity_score(y_true, y_pred, normalize=True,
@@ -358,7 +389,7 @@ def jaccard_similarity_score(y_true, y_pred, normalize=True,
     References
     ----------
     .. [1] `Wikipedia entry for the Jaccard index
-           <http://en.wikipedia.org/wiki/Jaccard_index>`_
+           <https://en.wikipedia.org/wiki/Jaccard_index>`_
 
 
     Examples
@@ -440,7 +471,7 @@ def matthews_corrcoef(y_true, y_pred, sample_weight=None):
        <http://dx.doi.org/10.1093/bioinformatics/16.5.412>`_
 
     .. [2] `Wikipedia entry for the Matthews Correlation Coefficient
-       <http://en.wikipedia.org/wiki/Matthews_correlation_coefficient>`_
+       <https://en.wikipedia.org/wiki/Matthews_correlation_coefficient>`_
 
     Examples
     --------
@@ -628,7 +659,7 @@ def f1_score(y_true, y_pred, labels=None, pos_label=1, average='binary',
 
     References
     ----------
-    .. [1] `Wikipedia entry for the F1-score <http://en.wikipedia.org/wiki/F1_score>`_
+    .. [1] `Wikipedia entry for the F1-score <https://en.wikipedia.org/wiki/F1_score>`_
 
     Examples
     --------
@@ -738,7 +769,7 @@ def fbeta_score(y_true, y_pred, beta, labels=None, pos_label=1,
            Modern Information Retrieval. Addison Wesley, pp. 327-328.
 
     .. [2] `Wikipedia entry for the F1-score
-           <http://en.wikipedia.org/wiki/F1_score>`_
+           <https://en.wikipedia.org/wiki/F1_score>`_
 
     Examples
     --------
@@ -922,10 +953,10 @@ def precision_recall_fscore_support(y_true, y_pred, beta=1.0, labels=None,
     References
     ----------
     .. [1] `Wikipedia entry for the Precision and recall
-           <http://en.wikipedia.org/wiki/Precision_and_recall>`_
+           <https://en.wikipedia.org/wiki/Precision_and_recall>`_
 
     .. [2] `Wikipedia entry for the F1-score
-           <http://en.wikipedia.org/wiki/F1_score>`_
+           <https://en.wikipedia.org/wiki/F1_score>`_
 
     .. [3] `Discriminative Methods for Multi-labeled Classification Advances
            in Knowledge Discovery and Data Mining (2004), pp. 22-30 by Shantanu
@@ -1374,11 +1405,9 @@ def classification_report(y_true, y_pred, labels=None, target_names=None,
     last_line_heading = 'avg / total'
 
     if target_names is None:
-        width = len(last_line_heading)
         target_names = ['%s' % l for l in labels]
-    else:
-        width = max(len(cn) for cn in target_names)
-        width = max(width, len(last_line_heading), digits)
+    name_width = max(len(cn) for cn in target_names)
+    width = max(name_width, len(last_line_heading), digits)
 
     headers = ["precision", "recall", "f1-score", "support"]
     fmt = '%% %ds' % width  # first column: class name
@@ -1468,7 +1497,7 @@ def hamming_loss(y_true, y_pred, classes=None, sample_weight=None):
            3(3), 1-13, July-September 2007.
 
     .. [2] `Wikipedia entry on the Hamming distance
-           <http://en.wikipedia.org/wiki/Hamming_distance>`_
+           <https://en.wikipedia.org/wiki/Hamming_distance>`_
 
     Examples
     --------
@@ -1496,8 +1525,10 @@ def hamming_loss(y_true, y_pred, classes=None, sample_weight=None):
         weight_average = np.mean(sample_weight)
 
     if y_type.startswith('multilabel'):
-        n_differences = count_nonzero(y_true - y_pred, sample_weight=sample_weight)
-        return (n_differences / (y_true.shape[0] * len(classes) * weight_average))
+        n_differences = count_nonzero(y_true - y_pred,
+                                      sample_weight=sample_weight)
+        return (n_differences /
+                (y_true.shape[0] * len(classes) * weight_average))
 
     elif y_type in ["binary", "multiclass"]:
         return _weighted_sum(y_true != y_pred, sample_weight, normalize=True)
@@ -1631,7 +1662,7 @@ def hinge_loss(y_true, pred_decision, labels=None, sample_weight=None):
     References
     ----------
     .. [1] `Wikipedia entry on the Hinge loss
-           <http://en.wikipedia.org/wiki/Hinge_loss>`_
+           <https://en.wikipedia.org/wiki/Hinge_loss>`_
 
     .. [2] Koby Crammer, Yoram Singer. On the Algorithmic
            Implementation of Multiclass Kernel-based Vector
@@ -1800,7 +1831,7 @@ def brier_score_loss(y_true, y_prob, sample_weight=None, pos_label=None):
 
     References
     ----------
-    http://en.wikipedia.org/wiki/Brier_score
+    https://en.wikipedia.org/wiki/Brier_score
     """
     y_true = column_or_1d(y_true)
     y_prob = column_or_1d(y_prob)

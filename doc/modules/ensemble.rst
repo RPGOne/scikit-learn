@@ -250,9 +250,9 @@ Feature importance evaluation
 The relative rank (i.e. depth) of a feature used as a decision node in a
 tree can be used to assess the relative importance of that feature with
 respect to the predictability of the target variable. Features used at
-the top of the tree are used contribute to the final prediction decision
-of a larger fraction of the input samples. The **expected fraction of
-the samples** they contribute to can thus be used as an estimate of the
+the top of the tree contribute to the final prediction decision of a 
+larger fraction of the input samples. The **expected fraction of the 
+samples** they contribute to can thus be used as an estimate of the
 **relative importance of the features**.
 
 By **averaging** those expected activity rates over several randomized
@@ -414,7 +414,7 @@ decision trees).
 Gradient Tree Boosting
 ======================
 
-`Gradient Tree Boosting <http://en.wikipedia.org/wiki/Gradient_boosting>`_
+`Gradient Tree Boosting <https://en.wikipedia.org/wiki/Gradient_boosting>`_
 or Gradient Boosted Regression Trees (GBRT) is a generalization
 of boosting to arbitrary
 differentiable loss functions. GBRT is an accurate and effective
@@ -679,7 +679,7 @@ the contribution of each weak learner by a factor :math:`\nu`:
     F_m(x) = F_{m-1}(x) + \nu \gamma_m h_m(x)
 
 The parameter :math:`\nu` is also called the **learning rate** because
-it scales the step length the the gradient descent procedure; it can
+it scales the step length the gradient descent procedure; it can
 be set via the ``learning_rate`` parameter.
 
 The parameter ``learning_rate`` strongly interacts with the parameter
@@ -997,7 +997,7 @@ classifier        class 1       class 2         class 3
 classifier 1	  w1 * 0.2      w1 * 0.5        w1 * 0.3
 classifier 2	  w2 * 0.6      w2 * 0.3        w2 * 0.1
 classifier 3      w3 * 0.3      w3 * 0.4        w3 * 0.3
-weighted average  0.37	        0.4             0.3
+weighted average  0.37	        0.4             0.23
 ================  ==========    ==========      ==========
 
 Here, the predicted class label is 2, since it has the
