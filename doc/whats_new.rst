@@ -196,6 +196,10 @@ Bug fixes
       :clas:`discriminant_analysis.LinearDiscriminantAnalysis` now returns
       correct results. By `JPFrancoia`_
 
+    - Fixed incorrect gradient computation for `loss='squared_epsilon_insensitive'` in
+      :class:`linear_model.SGDClassifier` and :class:`linear_model.SGDRegressor`
+      (`#6764 <https://github.com/scikit-learn/scikit-learn/pull/6764>`_). By `Wenhua Yang`_.
+
 
 API changes summary
 -------------------
@@ -4175,3 +4179,5 @@ David Huard, Dave Morrill, Ed Schofield, Travis Oliphant, Pearu Peterson.
 .. _Ori Ziv: https://github.com/zivori
 
 .. _Sears Merritt: https://github.com/merritts
+
+.. _Wenhua Yang: https://github.com/geekoala
