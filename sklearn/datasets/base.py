@@ -51,6 +51,9 @@ class Bunch(dict):
     def __setattr__(self, key, value):
         self[key] = value
 
+    def __dir__(self):
+        return self.keys()
+
     def __getattr__(self, key):
         try:
             return self[key]
@@ -239,7 +242,7 @@ def load_files(container_path, description=None, categories=None,
                  DESCR=description)
 
 
-def load_iris():
+def load_iris(return_X_y=False):
     """Load and return the iris dataset (classification).
 
     The iris dataset is a classic and very easy multi-class classification
@@ -255,6 +258,15 @@ def load_iris():
 
     Read more in the :ref:`User Guide <datasets>`.
 
+    Parameters
+    ----------
+    
+        .. versionadded:: 0.18
+     
+    return_X_y : boolean, default=False.
+        If True, returns ``(data, target)`` instead of a Bunch object.
+        See below for more information about the `data` and `target` object.
+
     Returns
     -------
     data : Bunch
@@ -263,6 +275,8 @@ def load_iris():
         'target_names', the meaning of the labels, 'feature_names', the
         meaning of the features, and 'DESCR', the
         full description of the dataset.
+
+    (data, target) : tuple if ``return_X_y`` is True
 
     Examples
     --------
@@ -292,6 +306,9 @@ def load_iris():
 
     with open(join(module_path, 'descr', 'iris.rst')) as rst_file:
         fdescr = rst_file.read()
+
+    if return_X_y:
+        return data, target
 
     return Bunch(data=data, target=target,
                  target_names=target_names,
@@ -647,7 +664,7 @@ def _pkl_filepath(*args, **kwargs):
     """Ensure different filenames for Python 2 and Python 3 pickles
 
     An object pickled under Python 3 cannot be loaded under Python 2.
-    An object pickled under Python 2 can sometimes not be loaded loaded
+    An object pickled under Python 2 can sometimes not be loaded
     correctly under Python 3 because some Python 2 strings are decoded as
     Python 3 strings which can be problematic for objects that use Python 2
     strings as byte buffers for numerical data instead of "real" strings.

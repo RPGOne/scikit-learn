@@ -26,6 +26,7 @@ from sklearn.utils.testing import assert_false
 from sklearn.utils.testing import assert_true
 from sklearn.utils.testing import assert_equal
 from sklearn.utils.testing import assert_raises
+from sklearn.utils.testing import assert_array_equal
 
 
 DATA_HOME = tempfile.mkdtemp(prefix="scikit_learn_data_home_test_")
@@ -180,6 +181,13 @@ def test_load_iris():
     assert_equal(res.target_names.size, 3)
     assert_true(res.DESCR)
 
+    # test return_X_y option
+    X_y_tuple = load_iris(return_X_y=True)
+    bunch = load_iris()
+    assert_true(isinstance(X_y_tuple, tuple))
+    assert_array_equal(X_y_tuple[0], bunch.data)
+    assert_array_equal(X_y_tuple[1], bunch.target)
+
 
 def test_load_breast_cancer():
     res = load_breast_cancer()
@@ -223,3 +231,9 @@ def test_bunch_pickle_generated_with_0_16_and_read_with_0_17():
     bunch_from_pkl.key = 'changed'
     assert_equal(bunch_from_pkl.key, 'changed')
     assert_equal(bunch_from_pkl['key'], 'changed')
+
+
+def test_bunch_dir():
+    # check that dir (important for autocomplete) shows attributes
+    data = load_iris()
+    assert_true("data" in dir(data))
