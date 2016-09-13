@@ -933,7 +933,7 @@ class RobustScaler(BaseEstimator, TransformerMixin):
 
     quantile_range : tuple (q_min, q_max), 0.0 < q_min < q_max < 100.0
         Default: (25.0, 75.0) = (1st quantile, 3rd quantile) = IQR
-        Quantile range used to calculate scale_
+        Quantile range used to calculate ``scale_``.
 
         .. versionadded:: 0.18
 
@@ -1101,7 +1101,7 @@ def robust_scale(X, axis=0, with_centering=True, with_scaling=True,
 
     quantile_range : tuple (q_min, q_max), 0.0 < q_min < q_max < 100.0
         Default: (25.0, 75.0) = (1st quantile, 3rd quantile) = IQR
-        Quantile range used to calculate scale_
+        Quantile range used to calculate ``scale_``.
 
         .. versionadded:: 0.18
 
@@ -1694,10 +1694,10 @@ def _transform_selected(X, transform, selected="all", copy=True):
     -------
     X : array or sparse matrix, shape=(n_samples, n_features_new)
     """
+    X = check_array(X, accept_sparse='csc', copy=copy, dtype=FLOAT_DTYPES)
+
     if isinstance(selected, six.string_types) and selected == "all":
         return transform(X)
-
-    X = check_array(X, accept_sparse='csc', copy=copy, dtype=FLOAT_DTYPES)
 
     if len(selected) == 0:
         return X

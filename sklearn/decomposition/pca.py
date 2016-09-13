@@ -166,7 +166,7 @@ class PCA(_BasePCA):
 
         .. versionadded:: 0.18.0
 
-    iterated_power : int >= 0, optional (default 4)
+    iterated_power : int >= 0, or 'auto', (default 'auto')
         Number of iterations for the power method computed by
         svd_solver == 'randomized'.
 
@@ -183,7 +183,7 @@ class PCA(_BasePCA):
     components_ : array, [n_components, n_features]
         Principal axes in feature space, representing the directions of
         maximum variance in the data. The components are sorted by
-        explained_variance_.
+        ``explained_variance_``.
 
     explained_variance_ : array, [n_components]
         The amount of variance explained by each of the selected components.
@@ -240,21 +240,21 @@ class PCA(_BasePCA):
     >>> X = np.array([[-1, -1], [-2, -1], [-3, -2], [1, 1], [2, 1], [3, 2]])
     >>> pca = PCA(n_components=2)
     >>> pca.fit(X)
-    PCA(copy=True, iterated_power=4, n_components=2, random_state=None,
+    PCA(copy=True, iterated_power='auto', n_components=2, random_state=None,
       svd_solver='auto', tol=0.0, whiten=False)
     >>> print(pca.explained_variance_ratio_) # doctest: +ELLIPSIS
     [ 0.99244...  0.00755...]
 
     >>> pca = PCA(n_components=2, svd_solver='full')
     >>> pca.fit(X)                 # doctest: +ELLIPSIS +NORMALIZE_WHITESPACE
-    PCA(copy=True, iterated_power=4, n_components=2, random_state=None,
+    PCA(copy=True, iterated_power='auto', n_components=2, random_state=None,
       svd_solver='full', tol=0.0, whiten=False)
     >>> print(pca.explained_variance_ratio_) # doctest: +ELLIPSIS
     [ 0.99244...  0.00755...]
 
     >>> pca = PCA(n_components=1, svd_solver='arpack')
     >>> pca.fit(X)
-    PCA(copy=True, iterated_power=4, n_components=1, random_state=None,
+    PCA(copy=True, iterated_power='auto', n_components=1, random_state=None,
       svd_solver='arpack', tol=0.0, whiten=False)
     >>> print(pca.explained_variance_ratio_) # doctest: +ELLIPSIS
     [ 0.99244...]
@@ -268,7 +268,7 @@ class PCA(_BasePCA):
     """
 
     def __init__(self, n_components=None, copy=True, whiten=False,
-                 svd_solver='auto', tol=0.0, iterated_power=4,
+                 svd_solver='auto', tol=0.0, iterated_power='auto',
                  random_state=None):
         self.n_components = n_components
         self.copy = copy
@@ -514,7 +514,7 @@ class PCA(_BasePCA):
 
 @deprecated("RandomizedPCA was deprecated in 0.18 and will be removed in 0.20. "
             "Use PCA(svd_solver='randomized') instead. The new implementation "
-            "DOES NOT store whiten components_. Apply transform to get them.")
+            "DOES NOT store whiten ``components_``. Apply transform to get them.")
 class RandomizedPCA(BaseEstimator, TransformerMixin):
     """Principal component analysis (PCA) using randomized SVD
 
@@ -535,8 +535,8 @@ class RandomizedPCA(BaseEstimator, TransformerMixin):
         fit(X).transform(X) will not yield the expected results,
         use fit_transform(X) instead.
 
-    iterated_power : int, optional
-        Number of iterations for the power method. 2 by default.
+    iterated_power : int, default=2
+        Number of iterations for the power method.
 
         .. versionchanged:: 0.18
 

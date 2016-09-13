@@ -75,6 +75,12 @@ DEPRECATED_TRANSFORM = [
     "GradientBoostingClassifier", "GradientBoostingRegressor"]
 
 
+def _set_test_name(function, name):
+    function.description = ("sklearn.tests.test_common.{0}({1})".format(
+        function.__name__, name))
+    return function
+
+
 def _yield_non_meta_checks(name, Estimator):
     yield check_estimators_dtypes
     yield check_fit_score_takes_y
@@ -220,7 +226,7 @@ def _yield_all_checks(name, Estimator):
 
 
 def check_estimator(Estimator):
-    """Check if estimator adheres to sklearn conventions.
+    """Check if estimator adheres to scikit-learn conventions.
 
     This estimator will run an extensive test-suite for input validation,
     shapes, etc.
@@ -1528,6 +1534,9 @@ def check_get_params_invariance(name, estimator):
 
         def fit(self, X, y):
             return self
+
+        def transform(self, X):
+            return X
 
     if name in ('FeatureUnion', 'Pipeline'):
         e = estimator([('clf', T())])

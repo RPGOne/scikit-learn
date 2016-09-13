@@ -9,8 +9,7 @@ Release history
 Version 0.18
 ============
 
-Changelog
----------
+**In Development**
 
 .. _model_selection_changes:
 
@@ -40,28 +39,41 @@ Model Selection Enhancements and API Changes
     :class:`model_selection.GridSearchCV` and
     :class:`model_selection.RandomizedSearchCV` utilities.
 
-  - **The enhanced `results_` attribute**
+  - **The enhanced ``cv_results_`` attribute**
 
-    The new ``results_`` attribute (of :class:`model_selection.GridSearchCV`
+    The new ``cv_results_`` attribute (of :class:`model_selection.GridSearchCV`
     and :class:`model_selection.RandomizedSearchCV`) introduced in lieu of the
     ``grid_scores_`` attribute is a dict of 1D arrays with elements in each
     array corresponding to the parameter settings (i.e. search candidates).
 
-    The ``results_`` dict can be easily imported into ``pandas`` as a
+    The ``cv_results_`` dict can be easily imported into ``pandas`` as a
     ``DataFrame`` for exploring the search results.
 
-    The ``results_`` arrays include scores for each cross-validation split
-    (with keys such as ``test_split0_score``), as well as their mean
-    (``test_mean_score``) and standard deviation (``test_std_score``).
+    The ``cv_results_`` arrays include scores for each cross-validation split
+    (with keys such as ``'split0_test_score'``), as well as their mean
+    (``'mean_test_score'``) and standard deviation (``'std_test_score'``).
 
     The ranks for the search candidates (based on their mean
-    cross-validation score) is available at ``results_['test_rank_score']``.
+    cross-validation score) is available at ``cv_results_['rank_test_score']``.
 
     The parameter values for each parameter is stored separately as numpy
     masked object arrays. The value, for that search candidate, is masked if
     the corresponding parameter is not applicable. Additionally a list of all
-    the parameter dicts are stored at ``results_['params']``.
+    the parameter dicts are stored at ``cv_results_['params']``.
 
+  - **Parameters ``n_folds`` and ``n_iter`` renamed to ``n_splits``**
+
+    Some parameter names have changed:
+    The ``n_folds`` parameter in :class:`model_selection.KFold`,
+    :class:`model_selection.LabelKFold`, and
+    :class:`model_selection.StratifiedKFold` is now renamed to ``n_splits``.
+    The ``n_iter`` parameter in :class:`model_selection.ShuffleSplit`,
+    :class:`model_selection.LabelShuffleSplit`,
+    and :class:`model_selection.StratifiedShuffleSplit` is now renamed
+    to ``n_splits``.
+
+Changelog
+---------
 
 New features
 ............
@@ -129,6 +141,12 @@ New features
      growth. (`#6954
      <https://github.com/scikit-learn/scikit-learn/pull/6954>`_) by `Nelson
      Liu`_
+
+   - Added new cross-validation splitter
+     :class:`model_selection.TimeSeriesSplit` to handle time series data.
+     (`#6586
+     <https://github.com/scikit-learn/scikit-learn/pull/6586>`_) by `YenChen
+     Lin`_
 
 Enhancements
 ............
@@ -217,7 +235,7 @@ Enhancements
    - The :func: `ignore_warnings` now accept a category argument to ignore only
      the warnings of a specified type. By `Thierry Guillemot`_.
 
-   - The new ``results_`` attribute of :class:`model_selection.GridSearchCV`
+   - The new ``cv_results_`` attribute of :class:`model_selection.GridSearchCV`
      (and :class:`model_selection.RandomizedSearchCV`) can be easily imported
      into pandas as a ``DataFrame``. Ref :ref:`model_selection_changes` for
      more information.
@@ -231,8 +249,8 @@ Enhancements
      By `Sebastian Säger`_ and `YenChen Lin`_.
 
    - Added parameter ``return_X_y`` and return type ``(data, target) : tuple`` option to
-     :func:`load_iris` dataset 
-     `#7049 <https://github.com/scikit-learn/scikit-learn/pull/7049>`_, 
+     :func:`load_iris` dataset
+     `#7049 <https://github.com/scikit-learn/scikit-learn/pull/7049>`_,
      :func:`load_breast_cancer` dataset
      `#7152 <https://github.com/scikit-learn/scikit-learn/pull/7152>`_,
      :func:`load_digits` dataset,
@@ -246,8 +264,47 @@ Enhancements
      (`#5929 <https://github.com/scikit-learn/scikit-learn/pull/5929>`_)
      By `Konstantin Podshumok`_.
 
+   - The memory footprint is reduced (sometimes greatly) for :class:`BaseBagging`
+     and classes that inherit from it, i.e, :class:`BaggingClassifier`,
+     :class:`BaggingRegressor`, and :class:`IsolationForest`, by dynamically
+     generating attribute ``estimators_samples_`` only when it is needed.
+     By `David Staub`_.
+
+   - :class:`linear_model.ElasticNet` and :class:`linear_model.Lasso`
+     now works with ``np.float32`` input data without converting it
+     into ``np.float64``. This allows to reduce the memory
+     consumption.
+     (`#6913 <https://github.com/scikit-learn/scikit-learn/pull/6913>`_)
+     By `YenChen Lin`_.
+
+   - Added ``labels`` flag to :class:`metrics.log_loss` to to explicitly provide
+     the labels when the number of classes in ``y_true`` and ``y_pred`` differ.
+     (`#7239 <https://github.com/scikit-learn/scikit-learn/pull/7239/>`_)
+     by `Hong Guangguo`_ with help from `Mads Jensen`_ and `Nelson Liu`_.
+
+   - Added ``n_jobs`` and ``sample_weights`` parameters for :class:`VotingClassifier`
+     to fit underlying estimators in parallel.
+     (`#5805 <https://github.com/scikit-learn/scikit-learn/pull/5805>`_)
+     By `Ibraim Ganiev`_.
+
+   - Added support for substituting or disabling :class:`pipeline.Pipeline`
+     and :class:`pipeline.FeatureUnion` components using the ``set_params``
+     interface that powers :mod:`sklearn.grid_search`.
+     See :ref:`sphx_glr_plot_compare_reduction.py`. By `Joel Nothman`_ and
+     `Robert McGibbon`_.
+
+   - Simplification of the ``clone`` function, deprecate support for estimators
+     that modify parameters in ``__init__``.
+     (`#5540 <https://github.com/scikit-learn/scikit-learn/pull/5540>_`)
+     By `Andreas Müller`_.
+
 Bug fixes
 .........
+
+    - :func: `model_selection.tests._search._check_param_grid` now works correctly with all types
+      that extends/implements `Sequence` (except string), including range (Python 3.x) and xrange
+      (Python 2.x).
+      (`#7323 <https://github.com/scikit-learn/scikit-learn/pull/7323>`_) by `Viacheslav Kovalevskyi`_.
 
     - :class:`StratifiedKFold` now raises error if all n_labels for individual classes is less than n_folds.
       (`#6182 <https://github.com/scikit-learn/scikit-learn/pull/6182>`_) by `Devashish Deshpande`_.
@@ -313,7 +370,7 @@ Bug fixes
     - Fix a bug where some formats of ``scipy.sparse`` matrix, and estimators
       with them as parameters, could not be passed to :func:`base.clone`.
       By `Loic Esteve`_.
-      
+
     - Fix bug in :class:`neighbors.RadiusNeighborsClassifier` where an error
       occurred when there were outliers being labelled and a weight function
       specified (`#6902
@@ -332,6 +389,19 @@ Bug fixes
     - Fix sparse input support in :func:`silhouette_score` as well as example
       examples/text/document_clustering.py. By `YenChen Lin`_.
 
+    - :func:`_transform_selected` now always passes a copy of `X` to transform
+      function when `copy=True` (`#7194
+      <https://github.com/scikit-learn/scikit-learn/issues/7194>`_). By `Caio
+      Oliveira <https://github.com/caioaao>`_.
+
+    - Fix :class:`linear_model.ElasticNet` sparse decision function to match
+      output with dense in the multioutput case.
+
+    - Fix in :class:`sklearn.model_selection.StratifiedShuffleSplit` to
+      return splits of size ``train_size`` and ``test_size`` in all cases
+      (`#6472 <https://github.com/scikit-learn/scikit-learn/pull/6472>`).
+      By `Andreas Müller`_.
+
 API changes summary
 -------------------
 
@@ -348,17 +418,37 @@ API changes summary
    - Access to public attributes ``.X_`` and ``.y_`` has been deprecated in
      :class:`isotonic.IsotonicRegression`. By `Jonathan Arfa`_.
 
+   - The old :class:`VBGMM` is deprecated in favor of the new
+     :class:`BayesianGaussianMixture`. The new class solves the computational
+     problems of the old class and computes the Variational Bayesian Gaussian
+     mixture faster than before.
+     Ref :ref:`b` for more information.
+     (`#6651 <https://github.com/scikit-learn/scikit-learn/pull/6651>`_) by
+     `Wei Xue`_ and `Thierry Guillemot`_.
+
    - The old :class:`GMM` is deprecated in favor of the new
      :class:`GaussianMixture`. The new class computes the Gaussian mixture
      faster than before and some of computational problems have been solved.
-     By `Wei Xue`_ and `Thierry Guillemot`_.
+     (`#6666 <https://github.com/scikit-learn/scikit-learn/pull/6666>`_) by
+     `Wei Xue`_ and `Thierry Guillemot`_.
 
    - The ``grid_scores_`` attribute of :class:`model_selection.GridSearchCV`
      and :class:`model_selection.RandomizedSearchCV` is deprecated in favor of
-     the attribute ``results_``.
+     the attribute ``cv_results_``.
      Ref :ref:`model_selection_changes` for more information.
      (`#6697 <https://github.com/scikit-learn/scikit-learn/pull/6697>`_) by
      `Raghav R V`_.
+
+   - The parameters ``n_iter`` or ``n_folds`` in old CV splitters are replaced
+     by the new parameter ``n_splits`` since it can provide a consistent
+     and unambiguous interface to represent the number of train-test splits.
+     (`#7187 <https://github.com/scikit-learn/scikit-learn/pull/7187>`_)
+     by `YenChen Lin`_.
+
+    - ``classes`` parameter was renamed to ``labels`` in
+      :func:`metrics.classification.hamming_loss`.
+      (`#7260 <https://github.com/scikit-learn/scikit-learn/pull/7260>`_) by
+      `Sebastián Vanrell`_.
 
 
 .. currentmodule:: sklearn
@@ -367,6 +457,8 @@ API changes summary
 
 Version 0.17.1
 ==============
+
+**February 18, 2016**
 
 Changelog
 ---------
@@ -408,6 +500,7 @@ Bug fixes
 Version 0.17
 ============
 
+**November 5, 2015**
 
 Changelog
 ---------
@@ -839,6 +932,8 @@ API changes summary
 Version 0.16.1
 ===============
 
+**April 14, 2015**
+
 Changelog
 ---------
 
@@ -870,6 +965,8 @@ Bug fixes
 
 Version 0.16
 ============
+
+**March 26, 2015**
 
 Highlights
 -----------
@@ -1337,6 +1434,8 @@ API changes summary
 Version 0.15.2
 ==============
 
+**September 4, 2014**
+
 Bug fixes
 ---------
 
@@ -1379,6 +1478,8 @@ Bug fixes
 Version 0.15.1
 ==============
 
+**August 1, 2014**
+
 Bug fixes
 ---------
 
@@ -1417,6 +1518,8 @@ Bug fixes
 
 Version 0.15
 ============
+
+**July 15, 2014**
 
 Highlights
 -----------
@@ -1949,6 +2052,8 @@ List of contributors for release 0.15 by number of commits.
 Version 0.14
 ===============
 
+**August 7, 2013**
+
 Changelog
 ---------
 
@@ -2332,6 +2437,8 @@ List of contributors for release 0.14 by number of commits.
 Version 0.13.1
 ==============
 
+**February 23, 2013**
+
 The 0.13.1 release only fixes some bugs and does not add any new functionality.
 
 Changelog
@@ -2377,6 +2484,8 @@ List of contributors for release 0.13.1 by number of commits.
 
 Version 0.13
 ============
+
+**January 21, 2013**
 
 New Estimator Classes
 ---------------------
@@ -2716,6 +2825,8 @@ List of contributors for release 0.13 by number of commits.
 Version 0.12.1
 ===============
 
+**October 8, 2012**
+
 The 0.12.1 release is a bug-fix release with no additional features, but is
 instead a set of bug fixes
 
@@ -2760,6 +2871,8 @@ People
 
 Version 0.12
 ============
+
+**September 4, 2012**
 
 Changelog
 ---------
@@ -2953,6 +3066,8 @@ People
 
 Version 0.11
 ============
+
+**May 7, 2012**
 
 Changelog
 ---------
@@ -3189,6 +3304,8 @@ People
 Version 0.10
 ============
 
+**January 11, 2012**
+
 Changelog
 ---------
 
@@ -3373,6 +3490,8 @@ The following people contributed to scikit-learn since last release:
 
 Version 0.9
 ===========
+
+**September 21, 2011**
 
 scikit-learn 0.9 was released on September 2011, three months after the 0.8
 release and includes the new modules :ref:`manifold`, :ref:`dirichlet_process`
@@ -3611,6 +3730,8 @@ People
 Version 0.8
 ===========
 
+**May 11, 2011**
+
 scikit-learn 0.8 was released on May 2011, one month after the first
 "international" `scikit-learn coding sprint
 <https://github.com/scikit-learn/scikit-learn/wiki/Upcoming-events>`_ and is
@@ -3711,6 +3832,8 @@ People that made this release possible preceded by number of commits:
 Version 0.7
 ===========
 
+**March 2, 2011**
+
 scikit-learn 0.7 was released in March 2011, roughly three months
 after the 0.6 release. This release is marked by the speed
 improvements in existing algorithms like k-Nearest Neighbors and
@@ -3801,6 +3924,8 @@ People that made this release possible preceded by number of commits:
 
 Version 0.6
 ===========
+
+**December 21, 2010**
 
 scikit-learn 0.6 was released on December 2010. It is marked by the
 inclusion of several new modules and a general renaming of old
@@ -3901,6 +4026,8 @@ People that made this release possible preceded by number of commits:
 
 Version 0.5
 ===========
+
+**October 11, 2010**
 
 Changelog
 ---------
@@ -4013,6 +4140,8 @@ number of commits:
 
 Version 0.4
 ===========
+
+**August 26, 2010**
 
 Changelog
 ---------
@@ -4336,3 +4465,13 @@ David Huard, Dave Morrill, Ed Schofield, Travis Oliphant, Pearu Peterson.
 .. _Ibraim Ganiev: https://github.com/olologin
 
 .. _Konstantin Podshumok: https://github.com/podshumok
+
+.. _David Staub: https://github.com/staubda
+
+.. _Hong Guangguo: https://github.com/hongguangguo
+
+.. _Mads Jensen: https://github.com/indianajensen
+
+.. _Sebastián Vanrell: https://github.com/srvanrell
+
+.. _Robert McGibbon: https://github.com/rmcgibbo

@@ -174,6 +174,7 @@ Splitter Classes
    model_selection.LabelShuffleSplit
    model_selection.StratifiedShuffleSplit
    model_selection.PredefinedSplit
+   model_selection.TimeSeriesSplit
 
 Splitter Functions
 ------------------
@@ -953,8 +954,8 @@ See the :ref:`metrics` section of the user guide for further details.
    :template: class.rst
 
    mixture.GaussianMixture
+   mixture.BayesianGaussianMixture
    mixture.DPGMM
-   mixture.VBGMM
 
 
 .. _multiclass_ref:
