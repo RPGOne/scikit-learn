@@ -64,16 +64,41 @@ Model Selection Enhancements and API Changes
   - **Parameters ``n_folds`` and ``n_iter`` renamed to ``n_splits``**
 
     Some parameter names have changed:
-    The ``n_folds`` parameter in :class:`model_selection.KFold`,
-    :class:`model_selection.LabelKFold`, and
-    :class:`model_selection.StratifiedKFold` is now renamed to ``n_splits``.
-    The ``n_iter`` parameter in :class:`model_selection.ShuffleSplit`,
-    :class:`model_selection.LabelShuffleSplit`,
-    and :class:`model_selection.StratifiedShuffleSplit` is now renamed
-    to ``n_splits``.
+    The ``n_folds`` parameter in new :class:`model_selection.KFold`,
+    :class:`model_selection.GroupKFold` (see below for the name change),
+    and :class:`model_selection.StratifiedKFold` is now renamed to
+    ``n_splits``. The ``n_iter`` parameter in
+    :class:`model_selection.ShuffleSplit`, the new class
+    :class:`model_selection.GroupShuffleSplit` and
+    :class:`model_selection.StratifiedShuffleSplit` is now renamed to
+    ``n_splits``.
 
-Changelog
----------
+  - **Rename of splitter classes which accepts group labels along with data**
+
+    The cross-validation splitters ``LabelKFold``,
+    ``LabelShuffleSplit``, ``LeaveOneLabelOut`` and ``LeavePLabelOut`` have
+    been renamed to :class:`model_selection.GroupKFold`,
+    :class:`model_selection.GroupShuffleSplit`,
+    :class:`model_selection.LeaveOneGroupOut` and
+    :class:`model_selection.LeavePGroupsOut` respectively.
+
+    NOTE the change from singular to plural form in
+    :class:`model_selection.LeavePGroupsOut`.
+
+  - **Fit parameter ``labels`` renamed to ``groups``**
+
+    The ``labels`` parameter in the :func:`split` method of the newly renamed
+    splitters :class:`model_selection.GroupKFold`,
+    :class:`model_selection.LeaveOneGroupOut`,
+    :class:`model_selection.LeavePGroupsOut`,
+    :class:`model_selection.GroupShuffleSplit` is renamed to ``groups``
+    following the new nomenclature of their class names.
+
+  - **Parameter ``n_labels`` renamed to ``n_groups``**
+
+    The parameter ``n_labels`` in the newly renamed
+    :class:`model_selection.LeavePGroupsOut` is changed to ``n_groups``.
+
 
 New features
 ............
@@ -402,6 +427,18 @@ Bug fixes
       (`#6472 <https://github.com/scikit-learn/scikit-learn/pull/6472>`).
       By `Andreas Müller`_.
 
+    - :func:`metrics.roc_curve` and :func:`metrics.precision_recall_curve` no
+      longer round ``y_score`` values when creating ROC curves; this was causing
+      problems for users with very small differences in scores (`#7353
+      <https://github.com/scikit-learn/scikit-learn/pull/7353>`_).
+
+    - Fix incomplete ``predict_proba`` method delegation from
+      :class:`model_selection.GridSearchCV` to
+      :class:`linear_model.SGDClassifier` (`#7159
+      <https://github.com/scikit-learn/scikit-learn/pull/7159>`_)
+      by `Yichuan Liu <https://github.com/yl565>`_.
+
+
 API changes summary
 -------------------
 
@@ -419,10 +456,20 @@ API changes summary
      :class:`isotonic.IsotonicRegression`. By `Jonathan Arfa`_.
 
    - The old :class:`VBGMM` is deprecated in favor of the new
-     :class:`BayesianGaussianMixture`. The new class solves the computational
+     :class:`BayesianGaussianMixture` (with the parameter
+     ``weight_concentration_prior_type='dirichlet_distribution'``).
+     The new class solves the computational
+     problems of the old class and computes the Gaussian mixture with a
+     Dirichlet process prior faster than before.
+     (`#7295 <https://github.com/scikit-learn/scikit-learn/pull/7295>`_) by
+     `Wei Xue`_ and `Thierry Guillemot`_.
+
+   - The old :class:`VBGMM` is deprecated in favor of the new
+     :class:`BayesianGaussianMixture` (with the parameter
+     ``weight_concentration_prior_type='dirichlet_distribution'``).
+     The new class solves the computational
      problems of the old class and computes the Variational Bayesian Gaussian
      mixture faster than before.
-     Ref :ref:`b` for more information.
      (`#6651 <https://github.com/scikit-learn/scikit-learn/pull/6651>`_) by
      `Wei Xue`_ and `Thierry Guillemot`_.
 
@@ -449,6 +496,20 @@ API changes summary
       :func:`metrics.classification.hamming_loss`.
       (`#7260 <https://github.com/scikit-learn/scikit-learn/pull/7260>`_) by
       `Sebastián Vanrell`_.
+   
+    - The splitter classes ``LabelKFold``, ``LabelShuffleSplit``,
+     ``LeaveOneLabelOut`` and ``LeavePLabelsOut`` are renamed to
+     :class:`model_selection.GroupKFold`,
+     :class:`model_selection.GroupShuffleSplit`,
+     :class:`model_selection.LeaveOneGroupOut`
+     and :class:`model_selection.LeavePGroupsOut` respectively.
+     Also the parameter ``labels`` in the :func:`split` method of the newly
+     renamed splitters :class:`model_selection.LeaveOneGroupOut` and
+     :class:`model_selection.LeavePGroupsOut` is renamed to
+     ``groups``. Additionally in :class:`model_selection.LeavePGroupsOut`,
+     the parameter ``n_labels``is renamed to ``n_groups``.
+     (`#6660 <https://github.com/scikit-learn/scikit-learn/pull/6660>`_)
+     by `Raghav RV`_.
 
 
 .. currentmodule:: sklearn

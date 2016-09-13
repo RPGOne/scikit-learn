@@ -37,10 +37,10 @@ from sklearn.datasets import make_multilabel_classification
 from sklearn.model_selection import KFold
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.model_selection import LeaveOneLabelOut
-from sklearn.model_selection import LeavePLabelOut
-from sklearn.model_selection import LabelKFold
-from sklearn.model_selection import LabelShuffleSplit
+from sklearn.model_selection import LeaveOneGroupOut
+from sklearn.model_selection import LeavePGroupsOut
+from sklearn.model_selection import GroupKFold
+from sklearn.model_selection import GroupShuffleSplit
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.model_selection import ParameterGrid
@@ -58,6 +58,7 @@ from sklearn.metrics import make_scorer
 from sklearn.metrics import roc_auc_score
 from sklearn.preprocessing import Imputer
 from sklearn.pipeline import Pipeline
+from sklearn.linear_model import SGDClassifier
 
 
 # Neither of the following two estimators inherit from BaseEstimator,
@@ -224,28 +225,28 @@ def test_grid_search_score_method():
     assert_almost_equal(score_auc, score_no_score_auc)
 
 
-def test_grid_search_labels():
-    # Check if ValueError (when labels is None) propagates to GridSearchCV
-    # And also check if labels is correctly passed to the cv object
+def test_grid_search_groups():
+    # Check if ValueError (when groups is None) propagates to GridSearchCV
+    # And also check if groups is correctly passed to the cv object
     rng = np.random.RandomState(0)
 
     X, y = make_classification(n_samples=15, n_classes=2, random_state=0)
-    labels = rng.randint(0, 3, 15)
+    groups = rng.randint(0, 3, 15)
 
     clf = LinearSVC(random_state=0)
     grid = {'C': [1]}
 
-    label_cvs = [LeaveOneLabelOut(), LeavePLabelOut(2), LabelKFold(),
-                 LabelShuffleSplit()]
-    for cv in label_cvs:
+    group_cvs = [LeaveOneGroupOut(), LeavePGroupsOut(2), GroupKFold(),
+                 GroupShuffleSplit()]
+    for cv in group_cvs:
         gs = GridSearchCV(clf, grid, cv=cv)
         assert_raise_message(ValueError,
-                             "The labels parameter should not be None",
+                             "The groups parameter should not be None",
                              gs.fit, X, y)
-        gs.fit(X, y, labels)
+        gs.fit(X, y, groups=groups)
 
-    non_label_cvs = [StratifiedKFold(), StratifiedShuffleSplit()]
-    for cv in non_label_cvs:
+    non_group_cvs = [StratifiedKFold(), StratifiedShuffleSplit()]
+    for cv in non_group_cvs:
         gs = GridSearchCV(clf, grid, cv=cv)
         # Should not raise an error
         gs.fit(X, y)
@@ -967,11 +968,13 @@ def test_grid_search_failing_classifier():
                       refit=False, error_score=0.0)
     assert_warns(FitFailedWarning, gs.fit, X, y)
     n_candidates = len(gs.cv_results_['params'])
+
     # Ensure that grid scores were set to zero as required for those fits
     # that are expected to fail.
-    get_cand_scores = lambda i: np.array(list(
-        gs.cv_results_['split%d_test_score' % s][i]
-        for s in range(gs.n_splits_)))
+    def get_cand_scores(i):
+        return np.array(list(gs.cv_results_['split%d_test_score' % s][i]
+                             for s in range(gs.n_splits_)))
+
     assert all((np.all(get_cand_scores(cand_i) == 0.0)
                 for cand_i in range(n_candidates)
                 if gs.cv_results_['param_parameter'][cand_i] ==
@@ -1028,3 +1031,33 @@ def test_parameters_sampler_replacement():
     sampler = ParameterSampler(params_distribution, n_iter=7)
     samples = list(sampler)
     assert_equal(len(samples), 7)
+
+
+def test_stochastic_gradient_loss_param():
+    # Make sure the predict_proba works when loss is specified
+    # as one of the parameters in the param_grid.
+    param_grid = {
+        'loss': ['log'],
+    }
+    X = np.arange(20).reshape(5, -1)
+    y = [0, 0, 1, 1, 1]
+    clf = GridSearchCV(estimator=SGDClassifier(loss='hinge'),
+                       param_grid=param_grid)
+
+    # When the estimator is not fitted, `predict_proba` is not available as the
+    # loss is 'hinge'.
+    assert_false(hasattr(clf, "predict_proba"))
+    clf.fit(X, y)
+    clf.predict_proba(X)
+    clf.predict_log_proba(X)
+
+    # Make sure `predict_proba` is not available when setting loss=['hinge']
+    # in param_grid
+    param_grid = {
+        'loss': ['hinge'],
+    }
+    clf = GridSearchCV(estimator=SGDClassifier(loss='hinge'),
+                       param_grid=param_grid)
+    assert_false(hasattr(clf, "predict_proba"))
+    clf.fit(X, y)
+    assert_false(hasattr(clf, "predict_proba"))
