@@ -1,3 +1,4 @@
+
 """
 The :mod:`sklearn.model_selection._validation` module includes classes and
 functions to validate the model.
@@ -23,11 +24,11 @@ from ..base import is_classifier, clone
 from ..utils import indexable, check_random_state, safe_indexing
 from ..utils.fixes import astype
 from ..utils.validation import _is_arraylike, _num_samples
+from ..utils.metaestimators import _safe_split
 from ..externals.joblib import Parallel, delayed, logger
 from ..metrics.scorer import check_scoring
 from ..exceptions import FitFailedWarning
-
-from ._split import check_cv, _safe_split
+from ._split import check_cv
 
 __all__ = ['cross_val_score', 'cross_val_predict', 'permutation_test_score',
            'learning_curve', 'validation_curve']
@@ -142,7 +143,8 @@ def cross_val_score(estimator, X, y=None, groups=None, scoring=None, cv=None,
 
 def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                    parameters, fit_params, return_train_score=False,
-                   return_parameters=False, error_score='raise'):
+                   return_parameters=False, return_n_test_samples=False,
+                   return_times=False, error_score='raise'):
     """Fit estimator and compute scores for a given dataset split.
 
     Parameters
@@ -199,8 +201,11 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
     n_test_samples : int
         Number of test samples.
 
-    scoring_time : float
-        Time spent for fitting and scoring in seconds.
+    fit_time : float
+        Time spent for fitting in seconds.
+
+    score_time : float
+        Time spent for scoring in seconds.
 
     parameters : dict or None, optional
         The parameters that have been evaluated.
@@ -233,6 +238,9 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
             estimator.fit(X_train, y_train, **fit_params)
 
     except Exception as e:
+        # Note fit time as time until error
+        fit_time = time.time() - start_time
+        score_time = 0.0
         if error_score == 'raise':
             raise
         elif isinstance(error_score, numbers.Number):
@@ -248,20 +256,24 @@ def _fit_and_score(estimator, X, y, scorer, train, test, verbose,
                              " make sure that it has been spelled correctly.)")
 
     else:
+        fit_time = time.time() - start_time
         test_score = _score(estimator, X_test, y_test, scorer)
+        score_time = time.time() - start_time - fit_time
         if return_train_score:
             train_score = _score(estimator, X_train, y_train, scorer)
-
-    scoring_time = time.time() - start_time
 
     if verbose > 2:
         msg += ", score=%f" % test_score
     if verbose > 1:
-        end_msg = "%s -%s" % (msg, logger.short_format_time(scoring_time))
+        end_msg = "%s -%s" % (msg, logger.short_format_time(score_time))
         print("[CV] %s %s" % ((64 - len(end_msg)) * '.', end_msg))
 
-    ret = [train_score] if return_train_score else []
-    ret.extend([test_score, _num_samples(X_test), scoring_time])
+    ret = [train_score, test_score] if return_train_score else [test_score]
+
+    if return_n_test_samples:
+        ret.append(_num_samples(X_test))
+    if return_times:
+        ret.extend([fit_time, score_time])
     if return_parameters:
         ret.append(parameters)
     return ret
@@ -630,7 +642,8 @@ def _shuffle(y, groups, random_state):
 def learning_curve(estimator, X, y, groups=None,
                    train_sizes=np.linspace(0.1, 1.0, 5), cv=None, scoring=None,
                    exploit_incremental_learning=False, n_jobs=1,
-                   pre_dispatch="all", verbose=0):
+                   pre_dispatch="all", verbose=0, shuffle=False,
+                   random_state=None):
     """Learning curve.
 
     Determines cross-validated training and test scores for different training
@@ -706,7 +719,14 @@ def learning_curve(estimator, X, y, groups=None,
     verbose : integer, optional
         Controls the verbosity: the higher, the more messages.
 
-    Returns
+    shuffle : boolean, optional
+        Whether to shuffle training data before taking prefixes of it
+        based on``train_sizes``.
+
+    random_state : None, int or RandomState
+        When shuffle=True, pseudo-random number generator state used for
+        shuffling. If None, use default numpy RNG for shuffling.
+
     -------
     train_sizes_abs : array, shape = (n_unique_ticks,), dtype int
         Numbers of training examples that has been used to generate the
@@ -747,18 +767,28 @@ def learning_curve(estimator, X, y, groups=None,
 
     parallel = Parallel(n_jobs=n_jobs, pre_dispatch=pre_dispatch,
                         verbose=verbose)
+
+    if shuffle:
+        rng = check_random_state(random_state)
+        cv_iter = ((rng.permutation(train), test) for train, test in cv_iter)
+
     if exploit_incremental_learning:
         classes = np.unique(y) if is_classifier(estimator) else None
         out = parallel(delayed(_incremental_fit_estimator)(
-            clone(estimator), X, y, classes, train, test, train_sizes_abs,
-            scorer, verbose) for train, test in cv.split(X, y, groups))
+            clone(estimator), X, y, classes, train,
+            test, train_sizes_abs, scorer, verbose)
+            for train, test in cv_iter)
     else:
+        train_test_proportions = []
+        for train, test in cv_iter:
+            for n_train_samples in train_sizes_abs:
+                train_test_proportions.append((train[:n_train_samples], test))
+
         out = parallel(delayed(_fit_and_score)(
-            clone(estimator), X, y, scorer, train[:n_train_samples], test,
+            clone(estimator), X, y, scorer, train, test,
             verbose, parameters=None, fit_params=None, return_train_score=True)
-            for train, test in cv_iter
-            for n_train_samples in train_sizes_abs)
-        out = np.array(out)[:, :2]
+            for train, test in train_test_proportions)
+        out = np.array(out)
         n_cv_folds = out.shape[0] // n_unique_ticks
         out = out.reshape(n_cv_folds, n_unique_ticks, 2)
 
@@ -941,7 +971,7 @@ def validation_curve(estimator, X, y, param_name, param_range, groups=None,
         parameters={param_name: v}, fit_params=None, return_train_score=True)
         for train, test in cv.split(X, y, groups) for v in param_range)
 
-    out = np.asarray(out)[:, :2]
+    out = np.asarray(out)
     n_params = len(param_range)
     n_cv_folds = out.shape[0] // n_params
     out = out.reshape(n_cv_folds, n_params, 2).transpose((2, 1, 0))

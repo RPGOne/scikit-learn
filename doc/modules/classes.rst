@@ -259,6 +259,7 @@ Loaders
    datasets.load_mlcomp
    datasets.load_sample_image
    datasets.load_sample_images
+   datasets.fetch_species_distributions
    datasets.load_svmlight_file
    datasets.load_svmlight_files
    datasets.dump_svmlight_file
@@ -763,6 +764,7 @@ Kernels:
 
     manifold.locally_linear_embedding
     manifold.spectral_embedding
+    manifold.smacof
 
 
 .. _metrics_ref:
@@ -955,7 +957,6 @@ See the :ref:`metrics` section of the user guide for further details.
 
    mixture.GaussianMixture
    mixture.BayesianGaussianMixture
-   mixture.DPGMM
 
 
 .. _multiclass_ref:
