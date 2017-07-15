@@ -1,0 +1,30 @@
+{
+  "name": "scikit-learn",
+  "scripts": {
+  },
+  "env": {
+    "CODESHIP_ID": {
+      "required": true
+    },
+    "NEW_RELIC_LICENSE_KEY": {
+      "required": true
+    },
+    "NEW_RELIC_LOG": {
+      "required": true
+    },
+    "PAPERTRAIL_API_TOKEN": {
+      "required": true
+    }
+  },
+  "formation": {
+  },
+  "addons": [
+    "codeship",
+    "herokuconnect",
+    "newrelic",
+    "papertrail"
+  ],
+  "buildpacks": [
+
+  ]
+}
